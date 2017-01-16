@@ -1,6 +1,9 @@
 #初学Lucene总结
 This is one of my learning Lucene project, very suitable for friends interested in Lucene. Project notes rich in detail, all of the code can run. Operating environment: JDK1.7, Lucene - 3.6.2, mmseg4j - all - 1.8.5 -- with dic, tika - app - 1.4
-##一、Lucene的基本用法
+##目录
+* [一、Lucene的基本用法](#一、Lucene的基本用法)
+一、Lucene的基本用法
+---------------------
 ####本学习项目采用的都是`Lucene-3.6.2`
 ---
 ##简介
