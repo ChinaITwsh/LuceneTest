@@ -177,10 +177,10 @@ public class LuceneHelloWorld {
 ```  
 ---
 
-##Lucene操作索引  
+Lucene操作索引  
 ------
 
-##Luke
+###Luke
 ---
 使用Luke可以查看分词信息，其下载地址为:http://code.google.com/p/luke/
 
