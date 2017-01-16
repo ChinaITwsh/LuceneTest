@@ -21,6 +21,7 @@ This is one of my learning Lucene project, very suitable for friends interested 
 * Field.Index.NOT_ANALYZED ：进行索引但不分词（如身份证号、姓名、ID等）,适用于精确搜索
 * Field.Index.ANALYZED_NOT_NORMS ：分词但不存储norms信息（norms包含了索引和排序评分规则权值等信息）
 * Field.Index.NOT_ANALYZED_NOT_NORMS ：即不进行分词也不存储norms信息
+
 * Field.Index.NO ：不进行索引  
 ---
 ##代码
