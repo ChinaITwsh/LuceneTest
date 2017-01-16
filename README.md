@@ -1,18 +1,18 @@
 #初学Lucene总结
 This is one of my learning Lucene project, very suitable for friends interested in Lucene. Project notes rich in detail, all of the code can run. Operating environment: JDK1.7, Lucene - 3.6.2, mmseg4j - all - 1.8.5 -- with dic, tika - app - 1.4
-##目录
-* [一、Lucene的基本用法](#一、Lucene的基本用法)  
-* [二、Lucene操作索引](#二、Lucene操作索引)  
-* [三、Lucene常见搜索](#三、Lucene常见搜索)  
-* [四、Lucene中文分词](#四、Lucene中文分词)  
-* [五、Lucene自定义停用词和同义词分词器](#五、Lucene自定义停用词和同义词分词器)  
-* [六、Lucene高级搜索之排序](#六、Lucene高级搜索之排序)  
-* [七、Lucene高级搜索之Filter](#七、Lucene高级搜索之Filter)  
-* [八、Lucene高级搜索之评分](#八、Lucene高级搜索之评分)  
-* [九、Lucene高级搜索之QueryParser](#九、Lucene高级搜索之QueryParser)  
-* [十、Lucene之Tika](#十、Lucene之Tika)  
-* [十一、Lucene之高亮](#十一、Lucene之高亮)  
-* [十二、Lucene近实时搜索](#十二、Lucene近实时搜索)   
+##目录[目录](#目录)
+* [一、Lucene的基本用法](#Lucene的基本用法)  
+* [二、Lucene操作索引](#Lucene操作索引)  
+* [三、Lucene常见搜索](#Lucene常见搜索)  
+* [四、Lucene中文分词](#Lucene中文分词)  
+* [五、Lucene自定义停用词和同义词分词器](#Lucene自定义停用词和同义词分词器)  
+* [六、Lucene高级搜索之排序](#Lucene高级搜索之排序)  
+* [七、Lucene高级搜索之Filter](#Lucene高级搜索之Filter)  
+* [八、Lucene高级搜索之评分](#Lucene高级搜索之评分)  
+* [九、Lucene高级搜索之QueryParser](#Lucene高级搜索之QueryParser)  
+* [十、Lucene之Tika](#Lucene之Tika)  
+* [十一、Lucene之高亮](#Lucene之高亮)  
+* [十二、Lucene近实时搜索](#Lucene近实时搜索)   
 
 ---
 ***
