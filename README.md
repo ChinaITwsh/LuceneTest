@@ -1415,3 +1415,1322 @@ public class LuceneTest {
     }
 }
 ```
+---
+##六、Lucene高级搜索之排序
+####下面演示的是`Lucene-3.6.2`中针对搜索结果进行排序的各种效果（详见代码注释）
+`AdvancedSearchBySort.java`
+```java
+package com.wsh.sort;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericField;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
+
+/**
+ * Lucene高级搜索之排序
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class AdvancedSearchBySort {
+    private Directory directory;
+    private IndexReader reader;
+
+    public AdvancedSearchBySort(){
+        /** 文件大小 */
+        int[] sizes = {90, 10, 20, 10, 60, 50};
+        /** 文件名 */
+        String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Jade", "Jadyer"};
+        /** 文件内容 */
+        String[] contents = {"my java blog is http://blog.highcom/highcom",
+                             "my Java Website is http://www.highcom.cn",
+                             "my name is chinaitwsh",
+                             "I am a Java Developer",
+                             "I am from Haerbin",
+                             "I like java of Lucene"};
+        /** 文件日期 */
+        Date[] dates = new Date[sizes.length];
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+        IndexWriter writer = null;
+        Document doc = null;
+        try {
+            dates[0] = sdf.parse("20161230 15:25:30");
+            dates[1] = sdf.parse("20161230 16:30:45");
+            dates[2] = sdf.parse("20161230 11:15:25");
+            dates[3] = sdf.parse("20161230 09:30:55");
+            dates[4] = sdf.parse("20161230 13:54:22");
+            dates[5] = sdf.parse("20161230 17:35:34");
+            directory = FSDirectory.open(new File("myExample/01_index/"));
+            writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
+            writer.deleteAll();
+            for(int i=0; i<sizes.length; i++){
+                doc = new Document();
+                doc.add(new NumericField("size",Field.Store.YES, true).setIntValue(sizes[i]));
+                doc.add(new Field("name", names[i], Field.Store.YES, Field.Index.ANALYZED_NO_NORMS));
+                doc.add(new Field("content", contents[i], Field.Store.NO, Field.Index.ANALYZED));
+                doc.add(new NumericField("date", Field.Store.YES, true).setLongValue(dates[i].getTime()));
+                writer.addDocument(doc);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(null != writer){
+                try {
+                    writer.close();
+                } catch (IOException ce) {
+                    ce.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取IndexReader实例
+     */
+    private IndexReader getIndexReader(){
+        try {
+            if(reader == null){
+                reader = IndexReader.open(directory);
+            }else{
+                //if the index was changed since the provided reader was opened, open and return a new reader; else,return null
+                //如果当前reader在打开期间index发生改变，则打开并返回一个新的IndexReader，否则返回null
+                IndexReader ir = IndexReader.openIfChanged(reader);
+                if(ir != null){
+                    reader.close(); //关闭原reader
+                    reader = ir;    //赋予新reader
+                }
+            }
+            return reader;
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null; //发生异常则返回null
+    }
+
+    /**
+     * 搜索排序
+     * ----------------------------------------------------------------------------------------------------------------
+     * 关于Sort参数的可输入规则，如下所示
+     * 1)Sort.INDEXORDER--使用文档编号从小到大的顺序进行排序
+     * 2)Sort.RELEVANCE---使用文档评分从大到小的顺序进行排序，也是默认的排序规则，等价于search(query, 10)
+     * 3)new Sort(new SortField("size", SortField.INT))-----------使用文件大小从小到大的顺序排序
+     * 4)new Sort(new SortField("date", SortField.LONG))----------使用文件日期从以前到现在的顺序排序
+     * 5)new Sort(new SortField("name", SortField.STRING))--------使用文件名从A到Z的顺序排序
+     * 6)new Sort(new SortField("name", SortField.STRING, true))--使用文件名从Z到A的顺序排序
+     * 7)new Sort(new SortField("size", SortField.INT), SortField.FIELD_SCORE)--先按文件大小排，再按文档评分排（可指定多个排序规则）
+     * 注意:以上7个Sort再打印文档评分时都是NaN，只有search(query, 10)才会正确打印文档评分
+     * ----------------------------------------------------------------------------------------------------------------
+     * @param expr 搜索表达式
+     * @param sort 排序规则
+     */
+    public void searchBySort(String expr, Sort sort){
+        IndexSearcher searcher = new IndexSearcher(this.getIndexReader());
+        QueryParser parser = new QueryParser(Version.LUCENE_36, "content", new StandardAnalyzer(Version.LUCENE_36));
+        TopDocs tds = null;
+        try {
+            if(null == sort){
+                tds = searcher.search(parser.parse(expr), 10);
+            }else{
+                tds = searcher.search(parser.parse(expr), 10, sort);
+            }
+            for(ScoreDoc sd : tds.scoreDocs){
+                Document doc = searcher.doc(sd.doc);
+                System.out.print("文档编号=" + sd.doc + "  文档权值=" + doc.getBoost() + "  文档评分=" + sd.score + "    ");
+                System.out.print("size=" + doc.get("size") + "  date=");
+                System.out.print(new SimpleDateFormat("yyyyMMdd HH:mm:ss").format(new Date(Long.parseLong(doc.get("date")))));
+                System.out.println("  name=" + doc.get("name"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(searcher != null){
+                try {
+                    searcher.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 测试一下排序效果
+     */
+    public static void main(String[] args) {
+        AdvancedSearchBySort advancedSearch = new AdvancedSearchBySort();
+        
+        ////使用文档评分从大到小的顺序进行排序,也是默认的排序规则
+        //advancedSearch.searchBySort("Java", null);
+        //advancedSearch.searchBySort("Java", Sort.RELEVANCE);
+        ////使用文档编号从小到大的顺序进行排序
+        //advancedSearch.searchBySort("Java", Sort.INDEXORDER);
+        ////使用文件大小从小到大的顺序排序
+        //advancedSearch.searchBySort("Java", new Sort(new SortField("size", SortField.INT)));
+        ////使用文件日期从以前到现在的顺序排序
+        //advancedSearch.searchBySort("Java", new Sort(new SortField("date", SortField.LONG)));
+        ////使用文件名从A到Z的顺序排序
+        //advancedSearch.searchBySort("Java", new Sort(new SortField("name", SortField.STRING)));
+        ////使用文件名从Z到A的顺序排序
+        //advancedSearch.searchBySort("Java", new Sort(new SortField("name", SortField.STRING, true)));
+        //先按照文件大小排序,再按照文档评分排序(可以指定多个排序规则)
+        /*advancedSearch.searchBySort("Java", new Sort(new SortField("size", SortField.INT), SortField.FIELD_SCORE));*/
+    }
+}
+```
+---
+##七、Lucene高级搜索之Filter
+####下面演示的是`Lucene-3.6.2`中搜索的时候，使用`普通Filter`和`自定义Filter`的用法（详见代码注释）
+`AdvancedSearchByFilter.java`
+```java
+package com.wsh.filter;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericField;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.Filter;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
+import com.wsh.filter.MyFilter;
+
+/**
+ * Lucene高级搜索之Filter
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class AdvancedSearchByFilter {
+    private Directory directory;
+    private IndexReader reader;
+
+    public AdvancedSearchByFilter(){
+        /** 文件大小 */
+        int[] sizes = {90, 10, 20, 10, 60, 50};
+        /** 文件名 */
+        String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Jade", "Jadyer"};
+        /** 文件内容 */
+        String[] contents = {"my java blog is http://blog.csdn.net/jadyer",
+                             "my Java Website is http://www.jadyer.cn",
+                             "my name is jadyer",
+                             "I am a Java Developer",
+                             "I am from Haerbin",
+                             "I like java of Lucene"};
+        /** 文件日期 */
+        Date[] dates = new Date[sizes.length];
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+        IndexWriter writer = null;
+        Document doc = null;
+        try {
+            dates[0] = sdf.parse("20130407 15:25:30");
+            dates[1] = sdf.parse("20130407 16:30:45");
+            dates[2] = sdf.parse("20130213 11:15:25");
+            dates[3] = sdf.parse("20130808 09:30:55");
+            dates[4] = sdf.parse("20130526 13:54:22");
+            dates[5] = sdf.parse("20130701 17:35:34");
+            directory = FSDirectory.open(new File("myExample/01_index/"));
+            writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
+            writer.deleteAll();
+            for(int i=0; i<sizes.length; i++){
+                doc = new Document();
+                doc.add(new NumericField("size",Field.Store.YES, true).setIntValue(sizes[i]));
+                doc.add(new Field("name", names[i], Field.Store.YES, Field.Index.ANALYZED_NO_NORMS));
+                doc.add(new Field("content", contents[i], Field.Store.NO, Field.Index.ANALYZED));
+                doc.add(new NumericField("date", Field.Store.YES, true).setLongValue(dates[i].getTime()));
+                //为每个文档添加一个fileID（与ScoreDoc.doc不同），其专门在自定义Filter时使用
+                doc.add(new Field("fileID", String.valueOf(i), Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS));
+                writer.addDocument(doc);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(null != writer){
+                try {
+                    writer.close();
+                } catch (IOException ce) {
+                    ce.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取IndexReader实例
+     */
+    private IndexReader getIndexReader(){
+        try {
+            if(reader == null){
+                reader = IndexReader.open(directory);
+            }else{
+                //if the index was changed since the provided reader was opened, open and return a new reader; else,return null
+                //如果当前reader在打开期间index发生改变，则打开并返回一个新的IndexReader，否则返回null
+                IndexReader ir = IndexReader.openIfChanged(reader);
+                if(ir != null){
+                    reader.close(); //关闭原reader
+                    reader = ir;    //赋予新reader
+                }
+            }
+            return reader;
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null; //发生异常则返回null
+    }
+
+    /**
+     * 搜索过滤
+     */
+    public void searchByFilter(String expr, Filter filter){
+        IndexSearcher searcher = new IndexSearcher(this.getIndexReader());
+        QueryParser parser = new QueryParser(Version.LUCENE_36, "content", new StandardAnalyzer(Version.LUCENE_36));
+        TopDocs tds = null;
+        try {
+            if(null == filter){
+                tds = searcher.search(parser.parse(expr), 10);
+            }else{
+                tds = searcher.search(parser.parse(expr), filter, 10);
+            }
+            for(ScoreDoc sd : tds.scoreDocs){
+                Document doc = searcher.doc(sd.doc);
+                System.out.print("文档编号=" + sd.doc + "  文档权值=" + doc.getBoost() + "  文档评分=" + sd.score + "   ");
+                System.out.print("fileID=" + doc.get("fileID") + "  size=" + doc.get("size") + "  date=");
+                System.out.print(new SimpleDateFormat("yyyyMMdd HH:mm:ss").format(new Date(Long.parseLong(doc.get("date")))));
+                System.out.println("  name=" + doc.get("name"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(searcher != null){
+                try {
+                    searcher.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 测试一下过滤效果
+     */
+    public static void main(String[] args) throws ParseException {
+        AdvancedSearchByFilter advancedSearch = new AdvancedSearchByFilter();
+        ////过滤文件名首字母从'h'到'n'的记录（注意hn要小写）
+        //advancedSearch.searchByFilter("Java", new TermRangeFilter("name", "h", "n", true, true));
+        ////过滤文件大小在30到80以内的记录
+        //advancedSearch.searchByFilter("Java", NumericRangeFilter.newIntRange("size", 30, 80, true, true));
+        ////过滤文件日期在20130701 00:00:00到20130808 23:59:59之间的记录
+        //Long min = Long.valueOf(new SimpleDateFormat("yyyyMMdd").parse("20130701").getTime());
+        //Long max = Long.valueOf(new SimpleDateFormat("yyyyMMdd HH:mm:ss").parse("20130808 23:59:59").getTime());
+        //advancedSearch.searchByFilter("Java", NumericRangeFilter.newLongRange("date", min, max, true, true));
+        ////过滤文件名以'ja'打头的（注意ja要小写）
+        //advancedSearch.searchByFilter("Java", new QueryWrapperFilter(new WildcardQuery(new Term("name", "ja*"))));
+        //自定义Filter
+        advancedSearch.searchByFilter("Java", new MyFilter());
+    }
+}
+```
+下面是自定义`Filter`
+```java
+package com.wsh.filter;
+
+import java.io.IOException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.index.TermDocs;
+import org.apache.lucene.search.DocIdSet;
+import org.apache.lucene.search.Filter;
+import org.apache.lucene.util.OpenBitSet;
+
+/**
+ * 自定义Filter
+ * -----------------------------------------------------------------------------------------------
+ * 本例的应用场景
+ * 假设很多的数据，然后删除了其中的某几条数据，此时在接受搜索请求时为保证不会搜索到已删除的数据
+ * 那么可以更新索引，但更新索引会消耗很多时间（因为数据量大），而又要保证已删除的数据不会被搜索到
+ * 此时就可以自定义Filter，原理即搜索过程中，当发现此记录为已删除记录，则不添加到返回的搜索结果集中
+ * -----------------------------------------------------------------------------------------------
+ * 自定义Filter步骤如下
+ * 1)继承Filter类并重写getDocIdSet()方法
+ * 2)根据实际过滤要求返回新的DocIdSet对象
+ * -----------------------------------------------------------------------------------------------
+ * DocIdSet小解
+ * 这里Filter干的活其实就是创建一个DocIdSet，而DocIdSet其实就是一个数组，可以理解为其中只存放0或1的值
+ * 每个搜索出来的Document都有一个文档编号，所以搜索出来多少个Document，那么DocIdSet中就会有多少条记录
+ * 而DocIdSet中每一条记录的索引号与文档编号是一一对应的
+ * 所以当DocIdSet中的记录为1时，则对应文档编号的Document就会被添加到TopDocs中，为0就会被过滤掉
+ * -----------------------------------------------------------------------------------------------
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class MyFilter extends Filter {
+    private static final long serialVersionUID = -8955061358165068L;
+
+    //假设这是已删除记录的fileID值的集合
+    private String[] deleteFileIDs = {"1", "3"};
+
+    @Override
+    public DocIdSet getDocIdSet(IndexReader reader) throws IOException {
+        //创建一个DocIdSet的子类OpenBitSet（创建之后默认所有元素都是0），传的参数就是本次"搜索到的"元素数目
+        OpenBitSet obs = new OpenBitSet(reader.maxDoc());
+        //先把元素填满，即全部设置为1
+        obs.set(0, reader.maxDoc());
+        //用于保存已删除元素的文档编号
+        int[] docs = new int[1];
+        for(String deleteDataID : deleteFileIDs){
+            //获取已删除元素对应的TermDocs
+            TermDocs tds = reader.termDocs(new Term("fileID", deleteDataID));
+            //将已删除元素的文档编号放到docs中，将其出现的频率放到freqs中，最后返回查询出来的元素数目
+            int count = tds.read(docs, new int[1]);
+            if(count == 1){
+                //将这个位置docs[0]的元素删除
+                obs.clear(docs[0]);
+            }
+        }
+        return obs;
+    }
+}
+```
+---
+##Lucene高级搜索之评分
+####下面演示的是Lucene-3.6.2中搜索的时候，自定义评分的用法（详见代码注释）
+`AdvancedSearchByScore.java`
+```java
+package com.wsh.score;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Random;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericField;
+import org.apache.lucene.index.CorruptIndexException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
+import com.wsh.score.MyNameScoreQuery;
+
+/**
+ * Lucene高级搜索之评分
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class AdvancedSearchByScore {
+    private Directory directory;
+    private IndexReader reader;
+
+    public AdvancedSearchByScore(){
+        /** 文件大小 */
+        int[] sizes = {90, 10, 20, 10, 60, 50};
+        /** 文件名 */
+        String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Jade", "Jadyer"};
+        /** 文件内容 */
+        String[] contents = {"my java blog is http://blog.highcom/highcom",
+                             "my Java Website is http://www.highcom.cn",
+                             "my name is chinaitwsh",
+                             "I am a Java Developer",
+                             "I am from Haerbin",
+                             "I like java of Lucene"};
+        IndexWriter writer = null;
+        Document doc = null;
+        try {
+            directory = FSDirectory.open(new File("myExample/01_index/"));
+            writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
+            writer.deleteAll();
+            for(int i=0; i<sizes.length; i++){
+                doc = new Document();
+                doc.add(new NumericField("size", Field.Store.YES, true).setIntValue(sizes[i]));
+                doc.add(new Field("name", names[i], Field.Store.YES, Field.Index.ANALYZED_NO_NORMS));
+                doc.add(new Field("content", contents[i], Field.Store.NO, Field.Index.ANALYZED));
+                //添加一个评分域，专门在自定义评分时使用（此时默认为Field.Store.NO和Field.Index.ANALYZED_NO_NORMS）
+                doc.add(new NumericField("fileScore").setIntValue(new Random().nextInt(600)));
+                writer.addDocument(doc);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(null != writer){
+                try {
+                    writer.close();
+                } catch (IOException ce) {
+                    ce.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取IndexReader实例
+     */
+    private IndexReader getIndexReader(){
+        try {
+            if(reader == null){
+                reader = IndexReader.open(directory);
+            }else{
+                //if the index was changed since the provided reader was opened, open and return a new reader; else,return null
+                //如果当前reader在打开期间index发生改变，则打开并返回一个新的IndexReader，否则返回null
+                IndexReader ir = IndexReader.openIfChanged(reader);
+                if(ir != null){
+                    reader.close(); //关闭原reader
+                    reader = ir;    //赋予新reader
+                }
+            }
+            return reader;
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null; //发生异常则返回null
+    }
+
+    /**
+     * 自定义评分搜索
+     */
+    public void searchByCustomScoreQuery(){
+        IndexSearcher searcher = new IndexSearcher(this.getIndexReader());
+        ////创建一个评分域
+        //FieldScoreQuery fsq = new FieldScoreQuery("fileScore", FieldScoreQuery.Type.INT);
+        ////创建自定义的CustomScoreQuery对象
+        //Query query = new MyCustomScoreQuery(new TermQuery(new Term("content", "java")), fsq);
+        Query query = new MyNameScoreQuery(new TermQuery(new Term("content", "java")));
+        try {
+            TopDocs tds = searcher.search(query, 10);
+            for(ScoreDoc sd : tds.scoreDocs){
+                Document doc = searcher.doc(sd.doc);
+                System.out.print("文档编号=" + sd.doc + "  文档权值=" + doc.getBoost() + "  文档评分=" + sd.score + "   ");
+                System.out.println("size=" + doc.get("size") + "  name=" + doc.get("name"));
+            }
+        } catch (CorruptIndexException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if(searcher != null){
+                try {
+                    searcher.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 测试一下评分效果
+     */
+    public static void main(String[] args) {
+        new AdvancedSearchByScore().searchByCustomScoreQuery();
+    }
+}
+```
+下面是我们自定义的评分类`MyCustomScoreQuery.java`
+```java
+package com.wsh.score;
+
+import java.io.IOException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.function.CustomScoreProvider;
+import org.apache.lucene.search.function.CustomScoreQuery;
+import org.apache.lucene.search.function.ValueSourceQuery;
+
+/**
+ * 自定义评分的步骤
+ * ---------------------------------------------------------------------------------------
+ * 1)创建一个类继承于CustomScoreQuery
+ * 2)覆盖CustomScoreQuery.getCustomScoreProvider()方法
+ * 3)创建一个类继承于CustomScoreProvider
+ * 4)覆盖CustomScoreProvider.customScore()方法：我们的自定义评分主要就是在此方法中完成的
+ * ---------------------------------------------------------------------------------------
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class MyCustomScoreQuery extends CustomScoreQuery {
+    private static final long serialVersionUID = -2373017691291184609L;
+
+    public MyCustomScoreQuery(Query subQuery, ValueSourceQuery valSrcQuery) {
+        //ValueSourceQuery参数就是指专门用来做评分的Query，即评分域的FieldScoreQuery
+        super(subQuery, valSrcQuery);
+    }
+
+    @Override
+    protected CustomScoreProvider getCustomScoreProvider(IndexReader reader) throws IOException {
+        //如果直接返回super的，就表示使用原有的评分规则，即通过[原有的评分*传入的评分域所获取的评分]来确定最终评分
+        //return super.getCustomScoreProvider(reader);
+        return new MyCustomScoreProvider(reader);
+    }
+
+    private class MyCustomScoreProvider extends CustomScoreProvider {
+        public MyCustomScoreProvider(IndexReader reader) {
+            super(reader);
+        }
+        @Override
+        public float customScore(int doc, float subQueryScore, float valSrcScore) throws IOException {
+            //subQueryScore--表示默认文档的打分，valSrcScore--表示评分域的打分
+            //该方法的返回值就是文档评分，即ScoreDoc.score获取的结果
+            System.out.println("subQueryScore=" + subQueryScore + "    valSrcScore=" + valSrcScore);
+            return subQueryScore/valSrcScore;
+        }
+    }
+}
+```
+下面是自定义的采用特殊文件名作为评分标准的评分类`MyNameScoreQuery.java`
+```java
+package com.wsh.score;
+
+import java.io.IOException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.search.FieldCache;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.function.CustomScoreProvider;
+import org.apache.lucene.search.function.CustomScoreQuery;
+
+/**
+ * 采用特殊文件名作为评分标准的评分类
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class MyNameScoreQuery extends CustomScoreQuery {
+    private static final long serialVersionUID = -2813985445544972520L;
+
+    public MyNameScoreQuery(Query subQuery) {
+        //由于这里是打算根据文件名来自定义评分，所以重写构造方法时不必传入评分域的ValueSourceQuery
+        super(subQuery);
+    }
+
+    @Override
+    protected CustomScoreProvider getCustomScoreProvider(IndexReader reader) throws IOException {
+        return new FilenameScoreProvider(reader);
+    }
+
+    private class FilenameScoreProvider extends CustomScoreProvider {
+        String[] filenames;
+        public FilenameScoreProvider(IndexReader reader) {
+            super(reader);
+            try {
+                //在IndexReader没有关闭之前，所有的数据都会存储到一个预缓存中（缺点是占用大量内存）
+                //所以我们可以通过预缓存获取name域的值（获取到的是name域所有值，故使用数组）
+                this.filenames = FieldCache.DEFAULT.getStrings(reader, "name");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        @Override
+        public float customScore(int doc, float subQueryScore, float valSrcScore) throws IOException {
+            //由于FilenameScoreQuery构造方法没有传入ValueSourceQuery，故此处ValueSourceQuery默认为1.0
+            System.out.println("subQueryScore=" + subQueryScore + "    valSrcScore=" + valSrcScore);
+            if(filenames[doc].endsWith(".java") || filenames[doc].endsWith(".ini")){
+                //只加大java文件和ini文件的评分
+                return subQueryScore*1.5f;
+            }else{
+                return subQueryScore/1.5f;
+            }
+        }
+    }
+}
+```
+---
+##Lucene高级搜索之QueryParser
+下面演示的是`Lucene-3.6.2`中搜索的时候
+
+通过`自定义QueryParser`的方式实现`禁用模糊和通配符`搜索，以及扩展`基于数字和日期`的搜索等功能（详见代码注释）
+`AdvancedSearch.java`
+```java
+package com.wsh.queryparser;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericField;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
+import com.wsh.queryparser.MyQueryParser;
+
+/**
+ * Lucene高级搜索之QueryParser
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class AdvancedSearch {
+    private Directory directory;
+    private IndexReader reader;
+
+    public AdvancedSearch(){
+        /** 文件大小 */
+        int[] sizes = {90, 10, 20, 10, 60, 50};
+        /** 文件名 */
+        String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Jade", "Jadyer"};
+        /** 文件内容 */
+        String[] contents = {"my java blog is http://blog.csdn.net/jadyer",
+                             "my Java Website is http://www.jadyer.cn",
+                             "my name is jadyer",
+                             "I am a Java Developer",
+                             "I am from Haerbin",
+                             "I like java of Lucene"};
+        /** 文件日期 */
+        Date[] dates = new Date[sizes.length];
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+        IndexWriter writer = null;
+        Document doc = null;
+        try {
+            dates[0] = sdf.parse("20130407 15:25:30");
+            dates[1] = sdf.parse("20130407 16:30:45");
+            dates[2] = sdf.parse("20130213 11:15:25");
+            dates[3] = sdf.parse("20130808 09:30:55");
+            dates[4] = sdf.parse("20130526 13:54:22");
+            dates[5] = sdf.parse("20130701 17:35:34");
+            directory = FSDirectory.open(new File("myExample/01_index/"));
+            writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
+            writer.deleteAll();
+            for(int i=0; i<sizes.length; i++){
+                doc = new Document();
+                doc.add(new NumericField("size",Field.Store.YES, true).setIntValue(sizes[i]));
+                doc.add(new Field("name", names[i], Field.Store.YES, Field.Index.ANALYZED_NO_NORMS));
+                doc.add(new Field("content", contents[i], Field.Store.NO, Field.Index.ANALYZED));
+                doc.add(new NumericField("date", Field.Store.YES, true).setLongValue(dates[i].getTime()));
+                writer.addDocument(doc);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(null != writer){
+                try {
+                    writer.close();
+                } catch (IOException ce) {
+                    ce.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取IndexReader实例
+     */
+    private IndexReader getIndexReader(){
+        try {
+            if(reader == null){
+                reader = IndexReader.open(directory);
+            }else{
+                //if the index was changed since the provided reader was opened, open and return a new reader; else,return null
+                //如果当前reader在打开期间index发生改变，则打开并返回一个新的IndexReader，否则返回null
+                IndexReader ir = IndexReader.openIfChanged(reader);
+                if(ir != null){
+                    reader.close(); //关闭原reader
+                    reader = ir;    //赋予新reader
+                }
+            }
+            return reader;
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null; //发生异常则返回null
+    }
+
+    /**
+     * 自定义QueryParser的搜索
+     * @param expr 搜索的表达式
+     */
+    public void searchByCustomQueryParser(String expr){
+        IndexSearcher searcher = new IndexSearcher(this.getIndexReader());
+        QueryParser parser = new MyQueryParser(Version.LUCENE_36, "content", new StandardAnalyzer(Version.LUCENE_36));
+        try {
+            Query query = parser.parse(expr);
+            TopDocs tds = searcher.search(query, 10);
+            for(ScoreDoc sd : tds.scoreDocs){
+                Document doc = searcher.doc(sd.doc);
+                System.out.print("文档编号=" + sd.doc + "  文档权值=" + doc.getBoost() + "  文档评分=" + sd.score + "   ");
+                System.out.print("size=" + doc.get("size") + "  date=");
+                System.out.print(new SimpleDateFormat("yyyyMMdd HH:mm:ss").format(new Date(Long.parseLong(doc.get("date")))));
+                System.out.println("  name=" + doc.get("name"));
+            }
+        } catch (ParseException e) {
+            System.err.println(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(null != searcher){
+                try {
+                    //记得关闭IndexSearcher
+                    searcher.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 测试一下搜索效果
+     */
+    public static void main(String[] args) {
+        AdvancedSearch advancedSearch = new AdvancedSearch();
+        advancedSearch.searchByCustomQueryParser("name:Jadk~");
+        advancedSearch.searchByCustomQueryParser("name:Ja??er");
+        System.out.println("------------------------------------------------------------------------");
+        advancedSearch.searchByCustomQueryParser("name:Jade");
+        System.out.println("------------------------------------------------------------------------");
+        advancedSearch.searchByCustomQueryParser("name:[h TO n]");
+        System.out.println("------------------------------------------------------------------------");
+        advancedSearch.searchByCustomQueryParser("size:[20 TO 80]");
+        System.out.println("------------------------------------------------------------------------");
+        advancedSearch.searchByCustomQueryParser("date:[20130407 TO 20130701]");
+    }
+}
+```
+下面是自定义的`MyQueryParser.java`
+
+这里主要实现了以下两个功能
+
+1、禁用模糊搜索和通配符搜索，以提高搜索性能
+
+2、扩展基于数字和日期的搜索，使之支持数字和日期的搜索
+```java
+package com.wsh.queryparser;
+
+import java.text.SimpleDateFormat;
+import java.util.regex.Pattern;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.queryParser.ParseException;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.NumericRangeQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.util.Version;
+
+/**
+ * 自定义QueryParser
+ * --------------------------------------------------------------------------------------------------
+ * 实际使用QueryParser的过程中，通常会考虑两个问题
+ * 1)限制性能低的QueryParser--对于某些QueryParser在搜索时会使得性能降低，故考虑禁用这些搜索以提升性能
+ * 2)扩展基于数字和日期的搜索---有时需要进行一个数字的范围搜索，故需扩展原有的QueryParser才能实现此搜索
+ * --------------------------------------------------------------------------------------------------
+ * 限制性能低的QueryParser
+ * 继承QueryParser类并重载相应方法，比如getFuzzyQuery和getWildcardQuery
+ * 这样造成的结果就是，当输入普通的搜索表达式时，如'I AND Haerbin'可以正常搜索
+ * 但输入'name:Jadk~'或者'name:Ja??er'时，就会执行到重载方法中，这时就可以自行处理了，比如本例中禁止该功能
+ * --------------------------------------------------------------------------------------------------
+ * 扩展基于数字和日期的查询
+ * 思路就是继承QueryParser类后重载getRangeQuery()方法
+ * 再针对数字和日期的'域'，做特殊处理（使用NumericRangeQuery.newIntRange()方法来搜索）
+ * --------------------------------------------------------------------------------------------------
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class MyQueryParser extends QueryParser {
+    public MyQueryParser(Version matchVersion, String f, Analyzer a) {
+        super(matchVersion, f, a);
+    }
+
+    @Override
+    protected Query getWildcardQuery(String field, String termStr) throws ParseException {
+        throw new ParseException("由于性能原因，已禁用通配符搜索，请输入更精确的信息进行搜索 ^_^ ^_^");
+    }
+
+    @Override
+    protected Query getFuzzyQuery(String field, String termStr, float minSimilarity) throws ParseException {
+        throw new ParseException("由于性能原因，已禁用模糊搜索，请输入更精确的信息进行搜索 ^_^ ^_^");
+    }
+
+    @Override
+    protected Query getRangeQuery(String field, String part1, String part2, boolean inclusive) throws ParseException {
+        if(field.equals("size")){
+            //默认的QueryParser.parse(String query)表达式中并不支持'size:[20 TO 80]'数字的域值
+            //这样一来，针对数字的域值进行特殊处理，那么QueryParser表达式就支持数字了
+            return NumericRangeQuery.newIntRange(field, Integer.parseInt(part1), Integer.parseInt(part2), inclusive, inclusive);
+        }else if(field.equals("date")){
+            String regex = "\\d{8}";
+            String dateType = "yyyyMMdd";
+            if(Pattern.matches(regex, part1) && Pattern.matches(regex, part2)){
+                SimpleDateFormat sdf = new SimpleDateFormat(dateType);
+                try {
+                    long min = sdf.parse(part1).getTime();
+                    long max = sdf.parse(part2).getTime();
+                    //使之支持日期的检索，应用时直接QueryParser.parse("date:[20130407 TO 20130701]")
+                    return NumericRangeQuery.newLongRange(field, min, max, inclusive, inclusive);
+                } catch (java.text.ParseException e) {
+                    e.printStackTrace();
+                }
+            }else{
+                throw new ParseException("Unknown date format, please use '" + dateType + "'");
+            }
+        }
+        //如没找到匹配的Field域，那么返回默认的TermRangeQuery
+        return super.getRangeQuery(field, part1, part2, inclusive);
+    }
+}
+```
+---
+##十、Lucene之Tika
+###简述
+以往解析PDF时通常使用PDFBox：http://pdfbox.apache.org/
+
+解析Office时使用POI：http://poi.apache.org/
+
+而Tika则是对它们的封装，它可以直接将`PDF、Office`等文件解析为文本字符串（也可以处理html、txt等等）
+
+官网为：http://tika.apache.org/
+
+用法为：命令行执行java -jar tika-app-1.4.jar（双击tika-app-1.4.jar竟然打不开）
+
+　　　　而在项目中使用时，直接引入`tika-app-1.4.jar`即可
+
+下面是Tike-1.4的一个使用示例`HelloTika.java`
+```java
+package com.wsh.tika;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import org.apache.tika.Tika;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.AutoDetectParser;
+import org.apache.tika.parser.ParseContext;
+import org.apache.tika.parser.Parser;
+import org.apache.tika.sax.BodyContentHandler;
+import org.xml.sax.ContentHandler;
+
+/**
+ * Tika-1.4使用示例
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class HelloTika {
+    public static String parseToStringByTikaParser(File file){
+        //创建解析器，使用AutoDetectParser可以自动检测一个最合适的解析器
+        Parser parser = new AutoDetectParser();
+        //指定解析文件中的文档内容
+        ContentHandler handler = new BodyContentHandler();
+        //指定元数据存放位置，并自己添加一些元数据
+        Metadata metadata = new Metadata();
+        metadata.set("MyAddPropertyName", "我叫玄玉");
+        metadata.set(Metadata.RESOURCE_NAME_KEY, file.getAbsolutePath());
+        //指定最基本的变量信息（即存放一个所使用的解析器对象）
+        ParseContext context = new ParseContext();
+        context.set(Parser.class, parser);
+        InputStream is = null;
+        try {
+            is = new FileInputStream(file);
+            //InputStream-----指定文件输入流
+            //ContentHandler--指定要解析文件的哪一个内容，它有一个实现类叫做BodyContentHandler，即专门用来解析文档内容的
+            //Metadata--------指定解析文件时，存放解析出来的元数据的Metadata对象
+            //ParseContext----该对象用于存放一些变量信息，该对象最少也要存放所使用的解析器对象，这也是其存放的最基本的变量信息
+            parser.parse(is, handler, metadata, context);
+            //打印元数据
+            for(String name : metadata.names()){
+                System.out.println(name + "=" + metadata.get(name));
+            }
+            //返回解析到的文档内容
+            return handler.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(is != null){
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        return null;
+    }
+
+    public static String parseToStringByTika(File file){
+        //据Tika文档上说，org.apache.tika.Tika的效率没有org.apache.tika.parser.Parser的高
+        Tika tika = new Tika();
+        //可以指定是否获取元数据，也可自己添加元数据
+        Metadata metadata = new Metadata();
+        metadata.set("MyAddPropertyName", "我叫玄玉");
+        metadata.set(Metadata.RESOURCE_NAME_KEY, file.getAbsolutePath());
+        try {
+            String fileContent = tika.parseToString(file);
+            //String fileContent = tika.parseToString(new FileInputStream(file), metadata);
+            //打印元数据
+            for(String name : metadata.names()){
+                System.out.println(name + "=" + metadata.get(name));
+            }
+            return fileContent;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static void main(String[] args) {
+        System.out.println(parseToStringByTikaParser(new File("myExample/myFile/Java安全.doc")));
+        System.out.println(parseToStringByTika(new File("myExample/myFile/Oracle_SQL语句优化.pdf")));
+        System.out.println(parseToStringByTika(new File("myExample/myFile/")));
+    }
+}
+```
+###借助Tika创建索引
+下面演示的就是在`Lucene-3.6.2`中借助`Tika-1.4`创建索引的示例代码
+```java
+package com.wsh.tika;
+
+import java.io.File;
+import java.io.IOException;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
+import org.apache.tika.Tika;
+import com.chenlb.mmseg4j.analysis.ComplexAnalyzer;
+
+/**
+ * Lucene之Tika
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class HelloTikaIndex {
+    private Directory directory;
+    private IndexReader reader;
+
+    public HelloTikaIndex(){
+        try {
+            directory = FSDirectory.open(new File("myExample/myIndex/"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 创建索引
+     */
+    public void createIndex(){
+        Document doc = null;
+        IndexWriter writer = null;
+        File myFile = new File("myExample/myFile/");
+        try{
+            //这里的分词器使用的是MMSeg4j（记得引入mmseg4j-all-1.8.5-with-dic.jar）
+            //详见https://jadyer.github.io/2013/08/18/lucene-chinese-analyzer/中对MMSeg4j的介绍
+            writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_36, new ComplexAnalyzer()));
+            writer.deleteAll();
+            for(File file : myFile.listFiles()){
+                doc = new Document();
+                ////当保存文件的Metadata时，要过滤掉文件夹，否则会报告文件夹无法访问的异常
+                //if(file.isDirectory()){
+                //    continue;
+                //}
+                //Metadata metadata = new Metadata();
+                //doc.add(new Field("filecontent", new Tika().parse(new FileInputStream(file), metadata)));
+                doc.add(new Field("filecontent", new Tika().parse(file)));
+                doc.add(new Field("filename", file.getName(), Field.Store.YES, Field.Index.NOT_ANALYZED));
+                writer.addDocument(doc);
+            }
+        }catch(Exception e) {
+            e.printStackTrace();
+        }finally{
+            if(null != writer){
+                try {
+                    writer.close();
+                } catch (IOException ce) {
+                    ce.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取IndexSearcher实例
+     */
+    private IndexSearcher getIndexSearcher(){
+        try {
+            if(reader == null){
+                reader = IndexReader.open(directory);
+            }else{
+                //if the index was changed since the provided reader was opened, open and return a new reader; else,return null
+                //如果当前reader在打开期间index发生改变，则打开并返回一个新的IndexReader，否则返回null
+                IndexReader ir = IndexReader.openIfChanged(reader);
+                if(ir != null){
+                    reader.close(); //关闭原reader
+                    reader = ir;    //赋予新reader
+                }
+            }
+            return new IndexSearcher(reader);
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null; //发生异常则返回null
+    }
+
+    /**
+     * 执行搜索操作
+     * @param fieldName 域名（相当于表的字段名）
+     * @param keyWords  搜索的关键字
+     */
+    public void searchFile(String fieldName, String keyWords){
+        IndexSearcher searcher = this.getIndexSearcher();
+        Query query = new TermQuery(new Term(fieldName, keyWords));
+        try {
+            TopDocs tds = searcher.search(query, 50);
+            for(ScoreDoc sd : tds.scoreDocs){
+                Document doc = searcher.doc(sd.doc);
+                System.out.print("文档编号=" + sd.doc + "  文档权值=" + doc.getBoost() + "  文档评分=" + sd.score + "   ");
+                System.out.println("filename=" + doc.get("filename"));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if(null != searcher){
+                try {
+                    searcher.close(); //记得关闭IndexSearcher
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 测试一下效果（测试前记得在myExample/myFile/目录下预先准备几个doc,pdf,html,txt等文件）
+     */
+    public static void main(String[] args) {
+        HelloTikaIndex hello = new HelloTikaIndex();
+        hello.createIndex();
+        hello.searchFile("filecontent", "java");
+    }
+}
+```
+---
+##十一、Lucene之高亮
+高亮功能属于Lucene的扩展功能（或者叫做贡献功能）
+
+其所需jar位于Lucene-3.6.2.zip/contrib/highlighter/文件夹中
+
+本文示例中需要以下4个jar
+
+`lucene-core-3.6.2.jar`
+`lucene-highlighter-3.6.2.jar`
+`mmseg4j-all-1.8.5-with-dic.jar`
+`tika-app-1.4.jar`
+下面演示的就是`Lucene-3.6.2`中高亮功能的示例代码
+`HelloHighLighter.java`
+```java
+package com.wsh.highlighter;
+
+import java.io.File;
+import java.io.IOException;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.queryParser.MultiFieldQueryParser;
+import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.highlight.Formatter;
+import org.apache.lucene.search.highlight.Fragmenter;
+import org.apache.lucene.search.highlight.Highlighter;
+import org.apache.lucene.search.highlight.QueryScorer;
+import org.apache.lucene.search.highlight.SimpleHTMLFormatter;
+import org.apache.lucene.search.highlight.SimpleSpanFragmenter;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FSDirectory;
+import org.apache.lucene.util.Version;
+import org.apache.tika.Tika;
+import com.chenlb.mmseg4j.analysis.MMSegAnalyzer;
+
+/**
+ * Lucene之高亮
+ * Created by 王书汉 on 2016/12/30.
+ */
+public class HelloHighLighter {
+    private Directory directory;
+    private IndexReader reader;
+
+    public HelloHighLighter(){
+        Document doc = null;
+        IndexWriter writer = null;
+        try{
+            directory = FSDirectory.open(new File("myExample/myIndex/"));
+            writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_36, new MMSegAnalyzer()));
+            writer.deleteAll();
+            for(File myFile : new File("myExample/myFile/").listFiles()){
+                doc = new Document();
+                doc.add(new Field("filecontent", new Tika().parse(myFile))); //Field.Store.NO, Field.Index.ANALYZED
+                doc.add(new Field("filepath", myFile.getAbsolutePath(), Field.Store.YES, Field.Index.NOT_ANALYZED_NO_NORMS));
+                writer.addDocument(doc);
+            }
+        }catch(Exception e) {
+            e.printStackTrace();
+        }finally{
+            if(null != writer){
+                try {
+                    writer.close();
+                } catch (IOException ce) {
+                    ce.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 获取IndexSearcher实例
+     */
+    private IndexSearcher getIndexSearcher(){
+        try {
+            if(reader == null){
+                reader = IndexReader.open(directory);
+            }else{
+                //if the index was changed since the provided reader was opened, open and return a new reader; else,return null
+                //如果当前reader在打开期间index发生改变，则打开并返回一个新的IndexReader，否则返回null
+                IndexReader ir = IndexReader.openIfChanged(reader);
+                if(ir != null){
+                    reader.close(); //关闭原reader
+                    reader = ir;    //赋予新reader
+                }
+            }
+            return new IndexSearcher(reader);
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+        return null; //发生异常则返回null
+    }
+
+    /**
+     * 高亮搜索（不建议把高亮信息存到索引里，而是搜索到内容之后再进行高亮处理）
+     * @param expr 搜索表达式
+     */
+    public void searchByHignLighter(String expr){
+        Analyzer analyzer = new MMSegAnalyzer();
+        IndexSearcher searcher = this.getIndexSearcher();
+        //搜索多个Field
+        QueryParser parser = new MultiFieldQueryParser(Version.LUCENE_36, new String[]{"filepath", "filecontent"}, analyzer);
+        try {
+            Query query = parser.parse(expr);
+            TopDocs tds = searcher.search(query, 50);
+            for(ScoreDoc sd : tds.scoreDocs){
+                Document doc = searcher.doc(sd.doc);
+                //获取文档内容
+                String filecontent = new Tika().parseToString(new File(doc.get("filepath")));
+                System.out.println("搜索到的内容为[" + filecontent + "]");
+                //开始高亮处理
+                QueryScorer queryScorer = new QueryScorer(query);
+                Fragmenter fragmenter = new SimpleSpanFragmenter(queryScorer, filecontent.length());
+                Formatter formatter = new SimpleHTMLFormatter("<span style='color:red'>", "</span>");
+                Highlighter hl = new Highlighter(formatter, queryScorer);
+                hl.setTextFragmenter(fragmenter);
+                System.out.println("高亮后的内容为[" + hl.getBestFragment(analyzer, "filecontent", filecontent) + "]");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            if(null != searcher){
+                try {
+                    searcher.close(); //记得关闭IndexSearcher
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
+     * 高亮的使用方式
+     */
+    private static void testHighLighter(){
+        //这个可以随便写，就是起个标识的作用
+        String fieldName = "myinfo";
+        String text = "我来自中国黑龙江省哈尔滨市巴彦县兴隆镇长春乡民权村4队";
+        QueryParser parser = new QueryParser(Version.LUCENE_36, fieldName, new MMSegAnalyzer());
+        try {
+            //这里用的是MMSeg4j中文分词器，有关介绍详见https://jadyer.github.io/2013/08/18/lucene-chinese-analyzer/
+            //MMSeg4j的new MMSegAnalyzer()默认只会对'中国'和'兴隆'进行分词，所以这里就只高亮它们俩了
+            Query query = parser.parse("中国 兴隆");
+            //针对查询出来的文本，查询其评分，以便于能够根据评分决定显示情况
+            QueryScorer queryScorer = new QueryScorer(query);
+            //对字符串或文本进行分段，SimpleSpanFragmenter构造方法的第二个参数可以指定高亮的文本长度，默认为100
+            Fragmenter fragmenter = new SimpleSpanFragmenter(queryScorer);
+            //高亮时的高亮格式，默认为<B></B>，这里指定为红色字体
+            Formatter formatter = new SimpleHTMLFormatter("<span style='color:red'>", "</span>");
+            //Highlighter专门用来做高亮显示
+            //该构造方法还有一个参数为Encoder，它有两个实现类DefaultEncoder和SimpleHTMLEncoder
+            //SimpleHTMLEncoder可以忽略掉HTML标签，而DefaultEncoder则不会忽略HTML标签
+            Highlighter hl = new Highlighter(formatter, queryScorer);
+            hl.setTextFragmenter(fragmenter);
+            System.out.println(hl.getBestFragment(new MMSegAnalyzer(), fieldName, text));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 小测试一下
+     */
+    public static void main(String[] args) {
+        //测试高亮的基本使用效果
+        HelloHighLighter.testHighLighter();
+        //测试高亮搜索的效果（测试前记得在myExample/myFile/文件夹中准备一个或多个内容包含"依赖"的doc或pdf的等文件）
+        new HelloHighLighter().searchByHignLighter("依赖");
+    }
+}
+```
+---
+##十二、Lucene近实时搜索
+实时搜索：只要数据发生变化，则马上更新索引（IndexWriter.commit()）
+
+近实时搜索：数据发生变化时，先将索引保存到内存中，然后在一个统一的时间再对内存中的所有索引执行commit提交动作
+
+为了实现近实时搜索，`Lucene3.0`提供的方式叫做`reopen`
+
+后来的版本中提供了两个线程安全的类`NRTManager`和`SearcherManager`
+
+不过这俩线程安全的类在`Lucene3.5`和`3.6`版本中的用法有点不太一样，这点要注意！
+
+下面演示的是`Lucene-3.6.2`中近实时搜索的实现方式
+``
