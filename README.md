@@ -2,9 +2,10 @@
 This is one of my learning Lucene project, very suitable for friends interested in Lucene. Project notes rich in detail, all of the code can run. Operating environment: JDK1.7, Lucene - 3.6.2, mmseg4j - all - 1.8.5 -- with dic, tika - app - 1.4
 ##目录
 * [一、Lucene的基本用法](#一、Lucene的基本用法)  
-* [二、Lucene操作索引](#二、Lucene操作索引)  
+* [二、Lucene操作索引](#二、Lucene操作索引)
+
 一、Lucene的基本用法  
----------------------
+------
 ####本学习项目采用的都是`Lucene-3.6.2`
 ---
 ##简介
@@ -162,8 +163,9 @@ public class LuceneHelloWorld {
 }
 ```  
 ---
+
 二、Lucene操作索引  
-------------------
+------
 ##Luke
 ---
 使用Luke可以查看分词信息，其下载地址为:http://code.google.com/p/luke/
