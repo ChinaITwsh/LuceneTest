@@ -50,7 +50,7 @@ import org.apache.lucene.util.Version;
 /**
  * Lucene创建索引与查询
  * 这里只需用到一个lucene-core-3.6.2.jar
- * Created by 王书汉 on 2016/12/28.
+ * Created by chinaitwsh on 2016/12/28.
  */
 public class LuceneHelloWorld {
     private static final String PATH_OF_FILE = "luceneExample/01_file/";   //待索引文件的目录
@@ -209,7 +209,7 @@ import org.apache.lucene.util.Version;
 
 /**
  * Lucene之索引的操作
- * Created by 王书汉 on 2016/12/28.
+ * Created by chinaitwsh on 2016/12/28.
  */
 public class Lucene {
     /*
@@ -551,7 +551,7 @@ import org.apache.lucene.util.Version;
 
 /**
  * Lucene常见搜索
- * Created by 王书汉 on 2016/12/29.
+ * Created by chinaitwsh on 2016/12/29.
  */
 public class LuceneSearch {
     private Directory directory;
@@ -1073,7 +1073,7 @@ import com.chenlb.mmseg4j.analysis.MMSegAnalyzer;
 
 /**
  * Lucene中文分词器
- * Created by 王书汉 on 2016/12/29.
+ * Created by chinaitwsh on 2016/12/29.
  */
 public class LuceneChineseAnalyzer {
     /**
@@ -1175,7 +1175,7 @@ import org.apache.lucene.analysis.tokenattributes.TypeAttribute;
 
 /**
  * Lucene自定义停用词和同义词分词器
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class LuceneCustomAnalyzer {
     /**
@@ -1240,7 +1240,7 @@ import org.apache.lucene.util.Version;
 
 /**
  * 自定义的停用词分词器（这里主要用来过滤忽略大小写的指定的字符串）
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class MyStopAnalyzer extends Analyzer {
     //存放停用的分词信息
@@ -1288,7 +1288,7 @@ import com.chenlb.mmseg4j.analysis.MMSegTokenizer;
 
 /**
  * 自定义的同义词分词器
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class MySynonymAnalyzer extends Analyzer {
     @Override
@@ -1303,7 +1303,7 @@ public class MySynonymAnalyzer extends Analyzer {
 
 /**
  * 自定义的TokenFilter
- * Created by 王书汉 on 2016/12/30
+ * Created by chinaitwsh on 2016/12/30
  */
 class MySynonymTokenFilter extends TokenFilter {
     private CharTermAttribute cta;            //用于获取TokenStream中的语汇单元
@@ -1447,7 +1447,7 @@ import org.apache.lucene.util.Version;
 
 /**
  * Lucene高级搜索之排序
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class AdvancedSearchBySort {
     private Directory directory;
@@ -1625,7 +1625,7 @@ import com.wsh.filter.MyFilter;
 
 /**
  * Lucene高级搜索之Filter
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class AdvancedSearchByFilter {
     private Directory directory;
@@ -1787,7 +1787,7 @@ import org.apache.lucene.util.OpenBitSet;
  * 而DocIdSet中每一条记录的索引号与文档编号是一一对应的
  * 所以当DocIdSet中的记录为1时，则对应文档编号的Document就会被添加到TopDocs中，为0就会被过滤掉
  * -----------------------------------------------------------------------------------------------
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class MyFilter extends Filter {
     private static final long serialVersionUID = -8955061358165068L;
@@ -1848,7 +1848,7 @@ import com.wsh.score.MyNameScoreQuery;
 
 /**
  * Lucene高级搜索之评分
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class AdvancedSearchByScore {
     private Directory directory;
@@ -1976,7 +1976,7 @@ import org.apache.lucene.search.function.ValueSourceQuery;
  * 3)创建一个类继承于CustomScoreProvider
  * 4)覆盖CustomScoreProvider.customScore()方法：我们的自定义评分主要就是在此方法中完成的
  * ---------------------------------------------------------------------------------------
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class MyCustomScoreQuery extends CustomScoreQuery {
     private static final long serialVersionUID = -2373017691291184609L;
@@ -2020,7 +2020,7 @@ import org.apache.lucene.search.function.CustomScoreQuery;
 
 /**
  * 采用特殊文件名作为评分标准的评分类
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class MyNameScoreQuery extends CustomScoreQuery {
     private static final long serialVersionUID = -2813985445544972520L;
@@ -2094,7 +2094,7 @@ import com.wsh.queryparser.MyQueryParser;
 
 /**
  * Lucene高级搜索之QueryParser
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class AdvancedSearch {
     private Directory directory;
@@ -2257,7 +2257,7 @@ import org.apache.lucene.util.Version;
  * 思路就是继承QueryParser类后重载getRangeQuery()方法
  * 再针对数字和日期的'域'，做特殊处理（使用NumericRangeQuery.newIntRange()方法来搜索）
  * --------------------------------------------------------------------------------------------------
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class MyQueryParser extends QueryParser {
     public MyQueryParser(Version matchVersion, String f, Analyzer a) {
@@ -2335,7 +2335,7 @@ import org.xml.sax.ContentHandler;
 
 /**
  * Tika-1.4使用示例
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class HelloTika {
     public static String parseToStringByTikaParser(File file){
@@ -2432,7 +2432,7 @@ import com.chenlb.mmseg4j.analysis.ComplexAnalyzer;
 
 /**
  * Lucene之Tika
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class HelloTikaIndex {
     private Directory directory;
@@ -2589,7 +2589,7 @@ import com.chenlb.mmseg4j.analysis.MMSegAnalyzer;
 
 /**
  * Lucene之高亮
- * Created by 王书汉 on 2016/12/30.
+ * Created by chinaitwsh on 2016/12/30.
  */
 public class HelloHighLighter {
     private Directory directory;
@@ -2762,7 +2762,7 @@ import org.apache.lucene.util.Version;
 
 /**
  * Lucene系列第12节之近实时搜索
- * Created by 王书汉 on 2013/08/20 16:19.
+ * Created by chinaitwsh on 2013/08/20 16:19.
  */
 public class HelloNRTSearch {
     private IndexWriter writer;
