@@ -1637,9 +1637,9 @@ public class AdvancedSearchByFilter {
         /** 文件名 */
         String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Jade", "Jadyer"};
         /** 文件内容 */
-        String[] contents = {"my java blog is http://blog.csdn.net/jadyer",
-                             "my Java Website is http://www.jadyer.cn",
-                             "my name is jadyer",
+        String[] contents = {"my java blog is http://blog.highcom.net/wsh",
+                             "my Java Github is https://github.com/ChinaITwsh",
+                             "my name is chinaitwsh",
                              "I am a Java Developer",
                              "I am from Haerbin",
                              "I like java of Lucene"};
@@ -1649,12 +1649,12 @@ public class AdvancedSearchByFilter {
         IndexWriter writer = null;
         Document doc = null;
         try {
-            dates[0] = sdf.parse("20130407 15:25:30");
-            dates[1] = sdf.parse("20130407 16:30:45");
-            dates[2] = sdf.parse("20130213 11:15:25");
-            dates[3] = sdf.parse("20130808 09:30:55");
-            dates[4] = sdf.parse("20130526 13:54:22");
-            dates[5] = sdf.parse("20130701 17:35:34");
+            dates[0] = sdf.parse("20161230 15:25:30");
+            dates[1] = sdf.parse("20161223 16:30:45");
+            dates[2] = sdf.parse("20161213 11:15:25");
+            dates[3] = sdf.parse("20161208 09:30:55");
+            dates[4] = sdf.parse("20161226 13:54:22");
+            dates[5] = sdf.parse("20161201 17:35:34");
             directory = FSDirectory.open(new File("myExample/01_index/"));
             writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
             writer.deleteAll();
@@ -2118,12 +2118,12 @@ public class AdvancedSearch {
         IndexWriter writer = null;
         Document doc = null;
         try {
-            dates[0] = sdf.parse("20130407 15:25:30");
-            dates[1] = sdf.parse("20130407 16:30:45");
-            dates[2] = sdf.parse("20130213 11:15:25");
-            dates[3] = sdf.parse("20130808 09:30:55");
-            dates[4] = sdf.parse("20130526 13:54:22");
-            dates[5] = sdf.parse("20130701 17:35:34");
+            dates[0] = sdf.parse("20161207 15:25:30");
+            dates[1] = sdf.parse("20161207 16:30:45");
+            dates[2] = sdf.parse("20161213 11:15:25");
+            dates[3] = sdf.parse("20161208 09:30:55");
+            dates[4] = sdf.parse("20161226 13:54:22");
+            dates[5] = sdf.parse("20161201 17:35:34");
             directory = FSDirectory.open(new File("myExample/01_index/"));
             writer = new IndexWriter(directory, new IndexWriterConfig(Version.LUCENE_36, new StandardAnalyzer(Version.LUCENE_36)));
             writer.deleteAll();
