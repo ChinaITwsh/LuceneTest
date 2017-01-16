@@ -12,7 +12,7 @@ This is one of my learning Lucene project, very suitable for friends interested 
 * [九、Lucene高级搜索之QueryParser](#九、Lucene高级搜索之QueryParser)  
 * [十、Lucene之Tika](#十、Lucene之Tika)  
 * [十一、Lucene之高亮](#十一、Lucene之高亮)  
-* [十二、Lucene近实时搜索](#十二、Lucene近实时搜索）   
+* [十二、Lucene近实时搜索](#十二、Lucene近实时搜索)   
 
 ---
 ***
@@ -177,7 +177,7 @@ public class LuceneHelloWorld {
 ```  
 ---
 
-二、Lucene操作索引  
+##二、Lucene操作索引  
 ------
 
 ##Luke
