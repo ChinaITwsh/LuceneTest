@@ -559,7 +559,7 @@ public class LuceneSearch {
     private String[] ids = {"1", "2", "3", "4", "5", "6"};
     private String[] names = {"Michael", "Scofield", "Tbag", "Jack", "Jade", "Jadyer"};
     private String[] emails = {"aa@highcom.us", "bb@highcom.cn", "cc@highcom.cc", "dd@highcom.tw", "ee@highcom.hk", "ff@highcom.me"};
-    private String[] contents = {"my java blog is http://blog.highcom.net/highcom", "my website is http://www.highcom.cn", "my name is highcom", "I am JavaDeveloper", "I am from Haerbin", "I like Lucene"};
+    private String[] contents = {"my java blog is http://blog.highcom.net/highcom", "my github is https://github.com/ChinaITwsh", "my name is highcom", "I am JavaDeveloper", "I am from Haerbin", "I like Lucene"};
     private int[] attachs = {9,3,5,4,1,2};
     private Date[] dates = new Date[ids.length];
 
@@ -1155,7 +1155,9 @@ public class LuceneChineseAnalyzer {
         System.out.println("---new com.chenlb.mmseg4j.analysis.MaxWordAnalyzer()分词方式---");
     }
 }
+```
 ---
+
 ##五、Lucene自定义停用词和同义词分词器
 ####Lucene自定义停用词和同义词分词器用法，代码分析如下
 `LuceneCustomAnalyzer.java`
@@ -1458,7 +1460,7 @@ public class AdvancedSearchBySort {
         String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Jade", "Jadyer"};
         /** 文件内容 */
         String[] contents = {"my java blog is http://blog.highcom/highcom",
-                             "my Java Website is http://www.highcom.cn",
+                             "my Java github is https://github.com/ChinaITwsh",
                              "my name is chinaitwsh",
                              "I am a Java Developer",
                              "I am from Haerbin",
@@ -1859,7 +1861,7 @@ public class AdvancedSearchByScore {
         String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Jade", "Jadyer"};
         /** 文件内容 */
         String[] contents = {"my java blog is http://blog.highcom/highcom",
-                             "my Java Website is http://www.highcom.cn",
+                             "my Java Github is https://github.com/ChinaITwsh",
                              "my name is chinaitwsh",
                              "I am a Java Developer",
                              "I am from Haerbin",
@@ -2102,10 +2104,10 @@ public class AdvancedSearch {
         /** 文件大小 */
         int[] sizes = {90, 10, 20, 10, 60, 50};
         /** 文件名 */
-        String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Jade", "Jadyer"};
+        String[] names = {"Michael.java", "Scofield.ini", "Tbag.txt", "Jack", "Judy", "chinaitwsh"};
         /** 文件内容 */
-        String[] contents = {"my java blog is http://blog.csdn.net/jadyer",
-                             "my Java Website is http://www.jadyer.cn",
+        String[] contents = {"my java blog is http://blog.highcom.net/wsh",
+                             "my Java Github is https://github.com/ChinaITwsh",
                              "my name is jadyer",
                              "I am a Java Developer",
                              "I am from Haerbin",
@@ -2343,7 +2345,7 @@ public class HelloTika {
         ContentHandler handler = new BodyContentHandler();
         //指定元数据存放位置，并自己添加一些元数据
         Metadata metadata = new Metadata();
-        metadata.set("MyAddPropertyName", "我叫玄玉");
+        metadata.set("MyAddPropertyName", "我叫柒色先森");
         metadata.set(Metadata.RESOURCE_NAME_KEY, file.getAbsolutePath());
         //指定最基本的变量信息（即存放一个所使用的解析器对象）
         ParseContext context = new ParseContext();
@@ -2381,7 +2383,7 @@ public class HelloTika {
         Tika tika = new Tika();
         //可以指定是否获取元数据，也可自己添加元数据
         Metadata metadata = new Metadata();
-        metadata.set("MyAddPropertyName", "我叫玄玉");
+        metadata.set("MyAddPropertyName", "我叫柒色先森");
         metadata.set(Metadata.RESOURCE_NAME_KEY, file.getAbsolutePath());
         try {
             String fileContent = tika.parseToString(file);
@@ -2686,12 +2688,12 @@ public class HelloHighLighter {
     private static void testHighLighter(){
         //这个可以随便写，就是起个标识的作用
         String fieldName = "myinfo";
-        String text = "我来自中国黑龙江省哈尔滨市巴彦县兴隆镇长春乡民权村4队";
+        String text = "我来自中国黑龙江省哈尔滨市黑龙江大学信息科学学院";
         QueryParser parser = new QueryParser(Version.LUCENE_36, fieldName, new MMSegAnalyzer());
         try {
             //这里用的是MMSeg4j中文分词器，有关介绍详见https://jadyer.github.io/2013/08/18/lucene-chinese-analyzer/
-            //MMSeg4j的new MMSegAnalyzer()默认只会对'中国'和'兴隆'进行分词，所以这里就只高亮它们俩了
-            Query query = parser.parse("中国 兴隆");
+            //MMSeg4j的new MMSegAnalyzer()默认只会对'中国'和'信息'进行分词，所以这里就只高亮它们俩了
+            Query query = parser.parse("中国 信息");
             //针对查询出来的文本，查询其评分，以便于能够根据评分决定显示情况
             QueryScorer queryScorer = new QueryScorer(query);
             //对字符串或文本进行分段，SimpleSpanFragmenter构造方法的第二个参数可以指定高亮的文本长度，默认为100
@@ -2760,7 +2762,7 @@ import org.apache.lucene.util.Version;
 
 /**
  * Lucene系列第12节之近实时搜索
- * Created by 玄玉<https://jadyer.github.io/> on 2013/08/20 16:19.
+ * Created by 王书汉 on 2013/08/20 16:19.
  */
 public class HelloNRTSearch {
     private IndexWriter writer;
@@ -2799,7 +2801,7 @@ public class HelloNRTSearch {
      */
     public static void createIndex(){
         String[] ids = {"1", "2", "3", "4", "5", "6"};
-        String[] names = {"Michael", "Scofield", "Tbag", "Jack", "Jade", "Jadyer"};
+        String[] names = {"Michael", "Scofield", "Tbag", "Jack", "Jade", "wsh"};
         String[] contents = {"my blog", "my website", "my name", "my job is JavaDeveloper", "I am from Haerbin", "I like Lucene"};
         IndexWriter writer = null;
         Document doc = null;
@@ -2962,4 +2964,4 @@ public class LuceneTest {
 }
 ```
 ---
-###总结基本如上，后续还会补上Lucene操作数据库的例子，有任何疑问可以联系我，e-mail:chinaitwsh@gmail.com
+###总结基本如上，后续还会补上Lucene操作数据库的例子，有任何疑问可以联系我，e-mail:chinaitwsh@iCloud.com
