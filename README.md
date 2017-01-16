@@ -177,7 +177,7 @@ public class LuceneHelloWorld {
 ```  
 ---
 
-##二、Lucene操作索引  
+##Lucene操作索引  
 ------
 
 ##Luke
