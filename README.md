@@ -3,9 +3,20 @@ This is one of my learning Lucene project, very suitable for friends interested 
 ##目录
 * [一、Lucene的基本用法](#一、Lucene的基本用法)  
 * [二、Lucene操作索引](#二、Lucene操作索引)
+* [三、Lucene常见搜索](#三、Lucene常见搜索)
+* [四、Lucene中文分词](#四、Lucene中文分词)
+* [五、Lucene自定义停用词和同义词分词器](#五、Lucene自定义停用词和同义词分词器)
+* [六、Lucene高级搜索之排序](#六、Lucene高级搜索之排序)
+* [七、Lucene高级搜索之Filter](#七、Lucene高级搜索之Filter)
+* [八、Lucene高级搜索之评分](#八、Lucene高级搜索之评分)
+* [九、Lucene高级搜索之QueryParser](#九、Lucene高级搜索之QueryParser)
+* [十、Lucene之Tika](#十、Lucene之Tika)
+* [十一、Lucene之高亮](#十一、Lucene之高亮)
+* [十二、Lucene近实时搜索](#十二、Lucene近实时搜索)
 
 一、Lucene的基本用法  
 ------
+
 ####本学习项目采用的都是`Lucene-3.6.2`
 ---
 ##简介
@@ -166,6 +177,7 @@ public class LuceneHelloWorld {
 
 二、Lucene操作索引  
 ------
+
 ##Luke
 ---
 使用Luke可以查看分词信息，其下载地址为:http://code.google.com/p/luke/
@@ -506,7 +518,9 @@ public class LuceneTest {
 }
 ```
 ---
-##三、Lucene常见搜索
+三、Lucene常见搜索
+------
+
 ###下面演示的内容，包括了Lucene-3.6.2的以下几种常见搜索
 
 * 精确搜索
@@ -975,7 +989,9 @@ public class LuceneTest {
 }
 ```
 ---
-##四、Lucene中文分词
+四、Lucene中文分词
+------
+
 ###简介
 `Lucene-3.5`推荐的四大分词器：SimpleAnalyzer、StopAnalyzer、WhitespaceAnalyzer、StandardAnalyzer
 
@@ -1165,7 +1181,9 @@ public class LuceneChineseAnalyzer {
 ```
 ---
 
-##五、Lucene自定义停用词和同义词分词器
+五、Lucene自定义停用词和同义词分词器
+------
+
 ####Lucene自定义停用词和同义词分词器用法，代码分析如下
 `LuceneCustomAnalyzer.java`
 ```java
@@ -1231,7 +1249,7 @@ public class LuceneCustomAnalyzer {
 }
 ```
 
-下面是自定义的停用词分词器`MyStopAnalyzer.java`
+自定义的停用词分词器`MyStopAnalyzer.java`
 ```java
 package com.wsh.custom;
 
@@ -1425,7 +1443,9 @@ public class LuceneTest {
 }
 ```
 ---
-##六、Lucene高级搜索之排序
+六、Lucene高级搜索之排序
+------
+
 ####下面演示的是`Lucene-3.6.2`中针对搜索结果进行排序的各种效果（详见代码注释）
 `AdvancedSearchBySort.java`
 ```java
@@ -1602,7 +1622,9 @@ public class AdvancedSearchBySort {
 }
 ```
 ---
-##七、Lucene高级搜索之Filter
+七、Lucene高级搜索之Filter
+------
+
 ####下面演示的是`Lucene-3.6.2`中搜索的时候，使用`普通Filter`和`自定义Filter`的用法（详见代码注释）
 `AdvancedSearchByFilter.java`
 ```java
@@ -1825,7 +1847,9 @@ public class MyFilter extends Filter {
 }
 ```
 ---
-##八、Lucene高级搜索之评分
+八、Lucene高级搜索之评分
+------
+
 ####下面演示的是Lucene-3.6.2中搜索的时候，自定义评分的用法（详见代码注释）
 `AdvancedSearchByScore.java`
 ```java
@@ -2069,7 +2093,9 @@ public class MyNameScoreQuery extends CustomScoreQuery {
 }
 ```
 ---
-##九、Lucene高级搜索之QueryParser
+九、Lucene高级搜索之QueryParser
+------
+
 下面演示的是`Lucene-3.6.2`中搜索的时候
 
 通过`自定义QueryParser`的方式实现`禁用模糊和通配符`搜索，以及扩展`基于数字和日期`的搜索等功能（详见代码注释）
@@ -2310,7 +2336,9 @@ public class MyQueryParser extends QueryParser {
 }
 ```
 ---
-##十、Lucene之Tika
+十、Lucene之Tika
+------
+
 ###简述
 以往解析PDF时通常使用PDFBox：http://pdfbox.apache.org/
 
@@ -2552,7 +2580,9 @@ public class HelloTikaIndex {
 }
 ```
 ---
-##十一、Lucene之高亮
+十一、Lucene之高亮
+------
+
 高亮功能属于Lucene的扩展功能（或者叫做贡献功能）
 
 其所需jar位于Lucene-3.6.2.zip/contrib/highlighter/文件夹中
@@ -2730,7 +2760,9 @@ public class HelloHighLighter {
 }
 ```
 ---
-##十二、Lucene近实时搜索
+十二、Lucene近实时搜索
+------
+
 实时搜索：只要数据发生变化，则马上更新索引（IndexWriter.commit()）
 
 近实时搜索：数据发生变化时，先将索引保存到内存中，然后在一个统一的时间再对内存中的所有索引执行commit提交动作
