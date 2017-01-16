@@ -3005,4 +3005,4 @@ public class LuceneTest {
 }
 ```
 ---
-###总结基本如上，后续还会补上Lucene操作数据库的例子，有任何疑问可以联系我，e-mail:chinaitwsh@iCloud.com  [目录](#目录)
+###总结基本如上，后续还会补上Lucene操作数据库的例子，有任何疑问可以联系我，e-mail:chinaitwsh@iCloud.com  [回到目录](#目录)
